@@ -66,7 +66,7 @@ pipeline {
         stage("Deploy_Production") {
             // This stage is for deploying the application to production
             when {
-                branch 'master'
+                branch 'main'
             }
             input {
                 message "deploy to production-server ?"
