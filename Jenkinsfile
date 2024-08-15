@@ -14,13 +14,8 @@ pipeline {
     // Artifacts are compressed and archived, and Slack notifications are sent on build success or failure.
 
     options {
-        script {
-            sendSlackMessage("Jenkins job ${env.JOB_NAME} (#${env.BUILD_NUMBER}) started by ${env.BUILD_USER} at ${new Date().format('HH:mm:ss')}\nBuild URL: ${env.BUILD_URL}")
-        }
-    }
-
-    // Artifact Retention Policies
-    properties {
+        sendSlackMessage("Jenkins job ${env.JOB_NAME} (#${env.BUILD_NUMBER}) started by ${env.BUILD_USER} at ${new Date().format('HH:mm:ss')}\nBuild URL: ${env.BUILD_URL}")
+        // Artifact Retention Policies
         buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '2'))
     }
 
@@ -28,19 +23,18 @@ pipeline {
         stage("Test") {
             // Build Caching
             // Leverage Maven's build cache to avoid rebuilding unchanged components.
+            options {
+                timeout(time: 4, unit: 'MINUTES') 
+            }
             steps {
                 sh "mvn dependency:go-offline" // Pre-fetch dependencies to speed up the build process
+                sh "mvn test -Dmaven.repo.local=.m2/repository"
             }
-            timeout(time: 30, unit: 'MINUTES') {
-                steps {
-                    sh "mvn test -Dmaven.repo.local=.m2/repository"
-                }
-                post {
-                    failure {
-                        script {
-                            env.STAGE_FAILED = "Test"
-                            env.STAGE_ERROR = currentBuild.description
-                        }
+            post {
+                failure {
+                    script {
+                        env.STAGE_FAILED = "Test"
+                        env.STAGE_ERROR = currentBuild.description
                     }
                 }
             }
@@ -48,17 +42,18 @@ pipeline {
         stage("Build") {
             // Optimize Build Artifacts
             // Compress build artifacts to save disk space and optimize storage.
-            timeout(time: 5, unit: 'MINUTES') {
-                steps {
-                    sh "mvn package -Dmaven.repo.local=.m2/repository"
-                    sh 'tar -czf target/my-artifact.tar.gz target/*.jar'
-                }
-                post {
-                    failure {
-                        script {
-                            env.STAGE_FAILED = "Build"
-                            env.STAGE_ERROR = currentBuild.description
-                        }
+            options {
+                timeout(time: 5, unit: 'MINUTES') 
+            }
+            steps {
+                sh "mvn package -Dmaven.repo.local=.m2/repository"
+                sh 'tar -czf target/my-artifact.tar.gz target/*.jar'
+            }
+            post {
+                failure {
+                    script {
+                        env.STAGE_FAILED = "Build"
+                        env.STAGE_ERROR = currentBuild.description
                     }
                 }
             }
@@ -72,17 +67,18 @@ pipeline {
                 message "deploy to production-server ?"
                 ok "Yes"
             }
-            timeout(time: 5, unit: 'MINUTES') {
-                steps {
-                    deploy adapters: [tomcat9(credentialsId: 'TOMCAT-DEPLOY_TEST', path: '', url: 'http://65.0.25.153:8081/')], contextPath: '/app', onFailure: false, war: '**/*.war'
-                    echo 'Deploying to production'
-                }
-                post {
-                    failure {
-                        script {
-                            env.STAGE_FAILED = "Deploy_Production"
-                            env.STAGE_ERROR = currentBuild.description
-                        }
+            options {
+                timeout(time: 5, unit: 'MINUTES') 
+            }
+            steps {
+                deploy adapters: [tomcat9(credentialsId: 'TOMCAT-DEPLOY_TEST', path: '', url: 'http://65.0.25.153:8081/')], contextPath: '/app', onFailure: false, war: '**/*.war'
+                echo 'Deploying to production'
+            }
+            post {
+                failure {
+                    script {
+                        env.STAGE_FAILED = "Deploy_Production"
+                        env.STAGE_ERROR = currentBuild.description
                     }
                 }
             }
