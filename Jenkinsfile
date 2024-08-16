@@ -54,7 +54,7 @@ pipeline {
             }
             steps {
                 sh "mvn package -Dmaven.repo.local=.m2/repository"
-                sh 'tar -czf target/my-artifact.tar.gz target/*.jar'
+                sh 'tar -czf target/my-artifact.tar.gz target/*.war'
             }
             post {
                 failure {
