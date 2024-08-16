@@ -33,16 +33,16 @@ pipeline {
             }
         }
         stage("Test") {
-            // Build Caching
-            // Leverage Maven's build cache to avoid rebuilding unchanged components.
             options {
                 timeout(time: 4, unit: 'MINUTES') 
             }
+            // Build Caching
+            // Leverage Maven's build cache to avoid rebuilding unchanged components.
             steps {
                 echo "=============== Test started ==============="
                 sh '''
                 mvn dependency:go-offline
-                mvn test -Dmaven.repo.local=.m2/repository
+                mvn test -Dmaven.repo.local=.m2/reposry
                 '''
             }
             post {
