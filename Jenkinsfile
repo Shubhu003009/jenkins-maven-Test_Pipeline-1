@@ -18,7 +18,7 @@ pipeline {
 
     options {
         // Artifact Retention Policies
-        buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '2'))
+        buildDiscarder(logRotator(numToKeepStr: '3', daysToKeepStr: '1'))
     }
 
     stages {
@@ -78,10 +78,6 @@ pipeline {
         }
         stage("Deploy_Production") {
             // This stage is for deploying the application to production
-            input {
-                message "deploy to production-server ?"
-                ok "Yes"
-            }
             options {
                 timeout(time: 5, unit: 'MINUTES') 
             }
