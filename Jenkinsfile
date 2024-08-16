@@ -23,7 +23,7 @@ pipeline {
             steps {
                 script {
                     // Sending Slack notification at the start of the job
-                    sendSlackMessage("Jenkins job ${env.JOB_NAME} (#${env.BUILD_NUMBER}) started by ${env.BUILD_USER} at ${new Date().format('HH:mm:ss')}\nBuild URL: ${env.BUILD_URL}")
+                    sendSlackMessage("Job ${env.JOB_NAME} (#${env.BUILD_NUMBER}) started by ${env.BUILD_DISPLAY_NAME}")
                 }
             }
         }
@@ -67,12 +67,15 @@ pipeline {
         }
         stage("Deploy_Production") {
             // This stage is for deploying the application to production
-            when {
-                branch 'main'
-            }
             input {
                 message "deploy to production-server ?"
                 ok "Yes"
+            }
+             when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                }
             }
             options {
                 timeout(time: 5, unit: 'MINUTES') 
@@ -95,11 +98,11 @@ pipeline {
         success {
             echo "======== Pipeline state successful ========"
             archiveArtifacts artifacts: 'target/my-artifact.tar.gz', allowEmptyArchive: true
-            sendSlackMessage("Pipeline ${env.JOB_NAME} (#${env.BUILD_NUMBER}) - Success")
+            sendSlackMessage("${env.JOB_NAME} (#${env.BUILD_NUMBER}) - Success")
         }
         failure {
             script {
-                def failureMessage = "Pipeline ${env.JOB_NAME} (#${env.BUILD_NUMBER}) - Failed\n"
+                def failureMessage = "${env.JOB_NAME} (#${env.BUILD_NUMBER}) - Failed\n"
                 if (env.STAGE_FAILED) {
                     failureMessage += "Stage Failed: ${env.STAGE_FAILED}\nError: ${env.STAGE_ERROR}"
                 }
@@ -111,11 +114,17 @@ pipeline {
 
 // Function to send a message to Slack
 def sendSlackMessage(String message) {
+    def timeZone = TimeZone.getTimeZone('Asia/Kolkata') // Timezone for IST
+    def date = new Date()
+    def dateFormat = new java.text.SimpleDateFormat('yyyy-MM-dd HH:mm:ss') // Adjust format as needed
+    dateFormat.setTimeZone(timeZone)
+    def localTime = dateFormat.format(date)
     try {
         slackSend(channel: 'mernstack-devops',
-                  message: "${message}\nBuild URL: ${env.BUILD_URL}",
+                  message: "${message}\nat (IST): ${localTime}",
                   )
     } catch (Exception e) {
         echo "Slack notification failed: ${e.message}"
     }
 }
+
