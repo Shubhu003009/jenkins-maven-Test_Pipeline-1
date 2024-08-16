@@ -101,7 +101,7 @@ pipeline {
     }
     post {
         success {
-            echo '=============== Pipeline state Successful ==============='
+            echo '=============== Pipeline state Success ==============='
             archiveArtifacts artifacts: 'target/my-artifact.tar.gz', allowEmptyArchive: true
             sendSlackMessage("#${env.BUILD_NUMBER} ${env.JOB_NAME} - Success")
         }
@@ -122,7 +122,7 @@ pipeline {
 def sendSlackMessage(String message) {
     def timeZone = TimeZone.getTimeZone('Asia/Kolkata') // Timezone for IST
     def date = new Date()
-    def dateFormat = new java.text.SimpleDateFormat('yyyy-MM-dd HH:mm:ss') // Adjust format as needed
+    def dateFormat = new java.text.SimpleDateFormat('yyyy-MM-dd HH:mm:ss a') // Adjust format as needed
     dateFormat.setTimeZone(timeZone)
     def localTime = dateFormat.format(date)
     try {
