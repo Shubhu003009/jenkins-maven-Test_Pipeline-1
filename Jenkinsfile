@@ -55,11 +55,11 @@ pipeline {
             }
         }
         stage("Build") {
-            // Optimize Build Artifacts
-            // Compress build artifacts to save disk space and optimize storage.
             options {
                 timeout(time: 5, unit: 'MINUTES') 
             }
+            // Optimize Build Artifacts
+            // Compress build artifacts to save disk space and optimize storage.
             steps {
                 echo "=============== Build started ==============="
                 sh '''
