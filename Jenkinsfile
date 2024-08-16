@@ -14,12 +14,19 @@ pipeline {
     // Artifacts are compressed and archived, and Slack notifications are sent on build success or failure.
 
     options {
-        sendSlackMessage("Jenkins job ${env.JOB_NAME} (#${env.BUILD_NUMBER}) started by ${env.BUILD_USER} at ${new Date().format('HH:mm:ss')}\nBuild URL: ${env.BUILD_URL}")
         // Artifact Retention Policies
         buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '2'))
     }
 
     stages {
+        stage('Initialization') {
+            steps {
+                script {
+                    // Sending Slack notification at the start of the job
+                    sendSlackMessage("Jenkins job ${env.JOB_NAME} (#${env.BUILD_NUMBER}) started by ${env.BUILD_USER} at ${new Date().format('HH:mm:ss')}\nBuild URL: ${env.BUILD_URL}")
+                }
+            }
+        }
         stage("Test") {
             // Build Caching
             // Leverage Maven's build cache to avoid rebuilding unchanged components.
