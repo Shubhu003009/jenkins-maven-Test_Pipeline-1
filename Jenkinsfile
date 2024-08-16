@@ -3,6 +3,9 @@ pipeline {
     tools {
         maven 'Maven'
     }
+    triggers {
+        githubPush()
+    }
     environment {
         STAGE_FAILED = ''
         STAGE_ERROR = ''
@@ -21,10 +24,11 @@ pipeline {
     stages {
         stage('Initialization') {
             steps {
+                echo "=============== Initialization started ==============="
                 script {
                     // Sending Slack notification at the start of the job
                     BUILD_TRIGGER_BY = currentBuild.getBuildCauses()[0].shortDescription + " / " + currentBuild.getBuildCauses()[0].userId
-                    sendSlackMessage("Job ${env.JOB_NAME} (#${env.BUILD_NUMBER}) started by ${BUILD_TRIGGER_BY}")
+                    sendSlackMessage("#${env.BUILD_NUMBER} ${env.JOB_NAME} ${BUILD_TRIGGER_BY}")
                 }
             }
         }
@@ -35,8 +39,8 @@ pipeline {
                 timeout(time: 4, unit: 'MINUTES') 
             }
             steps {
+                echo "=============== Test started ==============="
                 sh '''
-                echo "=============== Test stated ==============="
                 mvn dependency:go-offline
                 mvn test -Dmaven.repo.local=.m2/repository
                 '''
@@ -57,8 +61,8 @@ pipeline {
                 timeout(time: 5, unit: 'MINUTES') 
             }
             steps {
-                 sh '''
-                echo "=============== Build stated ==============="
+                echo "=============== Build started ==============="
+                sh '''
                 mvn package -Dmaven.repo.local=.m2/repository
                 tar -czf target/my-artifact.tar.gz target/*.war
                 '''
@@ -82,7 +86,7 @@ pipeline {
                 timeout(time: 5, unit: 'MINUTES') 
             }
             steps {
-                echo '=============== Deploy_Production stated ==============='
+                echo '=============== Deploy_Production started ==============='
                 deploy adapters: [tomcat9(credentialsId: 'TOMCAT-DEPLOY_TEST', path: '', url: 'http://65.0.25.153:8081/')], contextPath: '/app', onFailure: false, war: '**/*.war'
             }
             post {
@@ -99,12 +103,12 @@ pipeline {
         success {
             echo '=============== Pipeline state Successful ==============='
             archiveArtifacts artifacts: 'target/my-artifact.tar.gz', allowEmptyArchive: true
-            sendSlackMessage("${env.JOB_NAME} (#${env.BUILD_NUMBER}) - Success")
+            sendSlackMessage("#${env.BUILD_NUMBER} ${env.JOB_NAME} - Success")
         }
         failure {
             echo '=============== Pipeline state Failed ==============='
             script {
-                def failureMessage = "${env.JOB_NAME} (#${env.BUILD_NUMBER}) - Failed\n"
+                def failureMessage = "#${env.BUILD_NUMBER} ${env.JOB_NAME} - Failed\n"
                 if (env.STAGE_FAILED) {
                     failureMessage += "Stage Failed: ${env.STAGE_FAILED}\nError: ${env.STAGE_ERROR}"
                 }
@@ -123,7 +127,7 @@ def sendSlackMessage(String message) {
     def localTime = dateFormat.format(date)
     try {
         slackSend(channel: 'mernstack-devops',
-                  message: "${message}\nat (IST): ${localTime}",
+                  message: "${message}\nIST: ${localTime}\nBuild-url: ${env.BUILD_URL}",
                   )
     } catch (Exception e) {
         echo "Slack notification failed: ${e.message}"
