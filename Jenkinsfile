@@ -23,7 +23,8 @@ pipeline {
             steps {
                 script {
                     // Sending Slack notification at the start of the job
-                    sendSlackMessage("Job ${env.JOB_NAME} (#${env.BUILD_NUMBER}) started by ${env.BUILD_DISPLAY_NAME}")
+                    BUILD_TRIGGER_BY = currentBuild.getBuildCauses()[0].shortDescription + " / " + currentBuild.getBuildCauses()[0].userId
+                    sendSlackMessage("Job ${env.JOB_NAME} (#${env.BUILD_NUMBER}) started by ${BUILD_TRIGGER_BY}")
                 }
             }
         }
@@ -34,8 +35,11 @@ pipeline {
                 timeout(time: 4, unit: 'MINUTES') 
             }
             steps {
-                sh "mvn dependency:go-offline" // Pre-fetch dependencies to speed up the build process
-                sh "mvn test -Dmaven.repo.local=.m2/repository"
+                sh '''
+                echo "=============== Test stated ==============="
+                mvn dependency:go-offline
+                mvn test -Dmaven.repo.local=.m2/repository
+                '''
             }
             post {
                 failure {
@@ -53,8 +57,11 @@ pipeline {
                 timeout(time: 5, unit: 'MINUTES') 
             }
             steps {
-                sh "mvn package -Dmaven.repo.local=.m2/repository"
-                sh 'tar -czf target/my-artifact.tar.gz target/*.war'
+                 sh '''
+                echo "=============== Build stated ==============="
+                mvn package -Dmaven.repo.local=.m2/repository
+                tar -czf target/my-artifact.tar.gz target/*.war
+                '''
             }
             post {
                 failure {
@@ -71,18 +78,12 @@ pipeline {
                 message "deploy to production-server ?"
                 ok "Yes"
             }
-             when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                }
-            }
             options {
                 timeout(time: 5, unit: 'MINUTES') 
             }
             steps {
+                echo '=============== Deploy_Production stated ==============='
                 deploy adapters: [tomcat9(credentialsId: 'TOMCAT-DEPLOY_TEST', path: '', url: 'http://65.0.25.153:8081/')], contextPath: '/app', onFailure: false, war: '**/*.war'
-                echo 'Deploying to production'
             }
             post {
                 failure {
@@ -96,11 +97,12 @@ pipeline {
     }
     post {
         success {
-            echo "======== Pipeline state successful ========"
+            echo '=============== Pipeline state Successful ==============='
             archiveArtifacts artifacts: 'target/my-artifact.tar.gz', allowEmptyArchive: true
             sendSlackMessage("${env.JOB_NAME} (#${env.BUILD_NUMBER}) - Success")
         }
         failure {
+            echo '=============== Pipeline state Failed ==============='
             script {
                 def failureMessage = "${env.JOB_NAME} (#${env.BUILD_NUMBER}) - Failed\n"
                 if (env.STAGE_FAILED) {
