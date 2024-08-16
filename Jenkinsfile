@@ -118,7 +118,7 @@ pipeline {
 def sendSlackMessage(String message) {
     def timeZone = TimeZone.getTimeZone('Asia/Kolkata') // Timezone for IST
     def date = new Date()
-    def dateFormat = new java.text.SimpleDateFormat('yyyy-MM-dd HH:mm:ss a') // Adjust format as needed
+    def dateFormat = new java.text.SimpleDateFormat('yyyy-MM-dd hh:mm:ss a') // Adjust format as needed
     dateFormat.setTimeZone(timeZone)
     def localTime = dateFormat.format(date)
     try {
@@ -129,4 +129,3 @@ def sendSlackMessage(String message) {
         echo "Slack notification failed: ${e.message}"
     }
 }
-
